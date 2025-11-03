@@ -1,0 +1,154 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: dark; }
+html, body { @apply bg-paper text-ink font-display antialiased; }
+body {
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-top: env(safe-area-inset-top);
+  min-height: 100vh;
+}
+
+/* Bez globalnog skrola i 100% visina */
+html, body { height: 100%; overflow: hidden; }
+.container-page { @apply max-w-md mx-auto px-4 py-5; height: 100dvh; }
+
+/* Heading scale */
+.h1 { @apply text-3xl font-extrabold tracking-tight text-ink; }
+.h2 { @apply text-2xl font-bold tracking-tight text-ink; }
+.h3 { @apply text-lg font-semibold text-ink; }
+
+/* Karte */
+.card { @apply rounded-2xl bg-surface border border-surface-stroke p-5 shadow-soft; }
+.card-hero { @apply rounded-3xl bg-gradient-to-b from-surface to-surface-elev border border-surface-stroke p-6 shadow-soft; }
+
+/* Pitanje: pojačan outline + suptilan “depth” */
+.card-question {
+  box-shadow: inset 0 0 0 1px rgba(30,42,68,0.9), 0 8px 24px rgba(0,0,0,0.20);
+}
+
+/* Dugmad */
+button { @apply outline-none; }
+.btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 bg-brand-600 text-white font-semibold tracking-wide shadow-soft hover:bg-brand-500 active:bg-brand-700 transition;
+  transition-property: background-color, box-shadow, transform, opacity;
+}
+.btn-lg { @apply px-6 py-4 text-lg rounded-3xl; }
+.btn-secondary { @apply inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 bg-surface-elev text-ink border border-surface-stroke hover:bg-surface transition; }
+
+/* Krupniji odgovori (ergonomski za palac) */
+.btn-ans { @apply rounded-3xl py-5 text-lg; }
+
+/* Bottom sheet varijanta kartice – glass blur */
+.card-sheet {
+  @apply bg-surface/90 border border-surface-stroke shadow-soft backdrop-blur-md;
+  border-top-left-radius: 28px;  /* 3xl */
+  border-top-right-radius: 28px;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  padding: 16px;
+}
+
+/* Mali “handle” na vrhu sheet-a */
+.sheet-handle {
+  width: 44px;
+  height: 5px;
+  border-radius: 9999px;
+  margin: 2px auto 6px auto;
+  background: rgba(166, 176, 199, .35);
+}
+
+/* Bottom sheet layout + depth */
+.bottom-sheet {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 10px);
+  background: linear-gradient(to top, rgba(11,15,26,0.92), rgba(11,15,26,0.12) 38%, rgba(11,15,26,0) 70%);
+  pointer-events: auto;
+}
+.sheet-container {
+  max-width: 28rem; /* ~max-w-md */
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* Progress bar vizuelni tick + glow */
+.bar {
+  background: linear-gradient(90deg, #3E71FF, #2BD9C5);
+  box-shadow: 0 0 8px #3E71FF50;
+}
+.bar-normal { }
+.bar-critical {
+  animation: barPulse .8s ease-in-out infinite;
+  background: linear-gradient(90deg, #F59E0B, #EF4444);
+  box-shadow: 0 0 10px #EF444480, 0 0 18px #F59E0B50 inset;
+}
+
+@keyframes barPulse {
+  0%,100% { transform: scaleY(1); opacity: 1; }
+  50% { transform: scaleY(1.08); opacity: .95; }
+}
+
+/* Gradient naslov pitanja (diskoretan) */
+.question-title-gradient {
+  background-image: linear-gradient(90deg, #8AB8FF, #47E4D0);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Animacije */
+@keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+@keyframes fadeOut { from { opacity: 1 } to { opacity: 0 } }
+@keyframes riseIn { 0% { transform: translateY(12px); opacity: 0 } 100% { transform: translateY(0); opacity: 1 } }
+@keyframes slideUp { from { transform: translateY(22px); opacity: .0 } to { transform: translateY(0); opacity: 1 } }
+@keyframes slideDown { from { transform: translateY(0); opacity: 1 } to { transform: translateY(16px); opacity: 0 } }
+@keyframes pulseSoft {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.025); }
+  60% { transform: scale(1); }
+  100% { transform: scale(1); }
+}
+@keyframes shakeX {
+  0%,100% { transform: translateX(0); }
+  20% { transform: translateX(-3px); }
+  40% { transform: translateX(3px); }
+  60% { transform: translateX(-2px); }
+  80% { transform: translateX(2px); }
+}
+
+/* Utility anim klase */
+.anim-fade { animation: fadeIn .35s ease-out both; }
+.anim-fade-out { animation: fadeOut .18s ease-in both; }
+.anim-rise { animation: riseIn .45s ease-out both; }
+.anim-slide-up { animation: slideUp .35s cubic-bezier(.22,.95,.41,1) both; }
+.anim-slide-down { animation: slideDown .20s ease-in both; }
+.pulse-correct { animation: pulseSoft .35s ease-out both; }
+.shake-wrong { animation: shakeX .28s ease-in-out both; }
+
+/* Konfete (CSS only) */
+.confetti-overlay {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.confetti {
+  position: absolute;
+  top: -8px;
+  width: 8px; height: 14px;
+  border-radius: 2px;
+  opacity: .95;
+  animation: fall linear forwards;
+}
+@keyframes fall {
+  0% { transform: translateY(-10px) rotate(0deg); }
+  100% { transform: translateY(110vh) rotate(360deg); }
+}
+/* 6 boja/traka i horizontalna raspodela */
+.confetti-1 { left: 5%;  background:#4B8CFF; animation-duration: 1200ms; }
+.confetti-2 { left: 18%; background:#2BD9C5; animation-duration: 1400ms; }
+.confetti-3 { left: 33%; background:#F59E0B; animation-duration: 1300ms; }
+.confetti-4 { left: 49%; background:#EF4444; animation-duration: 1350ms; }
+.confetti-5 { left: 66%; background:#8AB8FF; animation-duration: 1250ms; }
+.confetti-6 { left: 82%; background:#47E4D0; animation-duration: 1450ms; }
