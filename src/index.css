@@ -84,19 +84,24 @@ button { @apply outline-none; }
   background: linear-gradient(90deg, #F59E0B, #EF4444);
   box-shadow: 0 0 10px #EF444480, 0 0 18px #F59E0B50 inset;
 }
-
 @keyframes barPulse {
   0%,100% { transform: scaleY(1); opacity: 1; }
   50% { transform: scaleY(1.08); opacity: .95; }
 }
 
-/* Gradient naslov pitanja (diskoretan) */
+/* Gradient naslov pitanja */
 .question-title-gradient {
   background-image: linear-gradient(90deg, #8AB8FF, #47E4D0);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
+
+/* Kategorije: kartice */
+.cat-card {
+  transition: transform .15s ease, box-shadow .2s ease, border-color .2s ease, background-color .2s ease;
+}
+.cat-card:hover { transform: translateY(-1px); }
 
 /* Animacije */
 @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
@@ -128,24 +133,9 @@ button { @apply outline-none; }
 .shake-wrong { animation: shakeX .28s ease-in-out both; }
 
 /* Konfete (CSS only) */
-.confetti-overlay {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-}
-.confetti {
-  position: absolute;
-  top: -8px;
-  width: 8px; height: 14px;
-  border-radius: 2px;
-  opacity: .95;
-  animation: fall linear forwards;
-}
-@keyframes fall {
-  0% { transform: translateY(-10px) rotate(0deg); }
-  100% { transform: translateY(110vh) rotate(360deg); }
-}
-/* 6 boja/traka i horizontalna raspodela */
+.confetti-overlay { position: absolute; inset: 0; overflow: hidden; }
+.confetti { position: absolute; top: -8px; width: 8px; height: 14px; border-radius: 2px; opacity: .95; animation: fall linear forwards; }
+@keyframes fall { 0% { transform: translateY(-10px) rotate(0deg); } 100% { transform: translateY(110vh) rotate(360deg); } }
 .confetti-1 { left: 5%;  background:#4B8CFF; animation-duration: 1200ms; }
 .confetti-2 { left: 18%; background:#2BD9C5; animation-duration: 1400ms; }
 .confetti-3 { left: 33%; background:#F59E0B; animation-duration: 1300ms; }

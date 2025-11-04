@@ -7,6 +7,7 @@ export type Page = 'start' | 'kviz'
 export type Settings = {
   perQuestionMs: number
   totalQuestions: number
+  categoryId: string | null
 }
 
 export default function App() {
@@ -14,6 +15,7 @@ export default function App() {
   const [settings, setSettings] = useState<Settings>({
     perQuestionMs: 10_000,
     totalQuestions: 10,
+    categoryId: null,
   })
 
   return (

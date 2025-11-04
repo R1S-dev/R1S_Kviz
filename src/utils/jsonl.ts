@@ -1,4 +1,3 @@
-
 import type { KvizQ } from '../types'
 
 export async function loadQuestionsJSONL(path = '/questions.jsonl'): Promise<KvizQ[]> {
@@ -11,7 +10,15 @@ export async function loadQuestionsJSONL(path = '/questions.jsonl'): Promise<Kvi
     try {
       const obj = JSON.parse(line)
       if (obj && obj.id && Array.isArray(obj.odgovori) && typeof obj.tacan === 'number') {
-        out.push(obj as KvizQ)
+        // dozvoli opciono "kategorija"; ako nema, tretiraj kao 'koznazna'
+        const rec: KvizQ = {
+          id: String(obj.id),
+          pitanje: String(obj.pitanje ?? ''),
+          odgovori: obj.odgovori as string[],
+          tacan: Number(obj.tacan),
+          kategorija: obj.kategorija ? String(obj.kategorija) : 'koznazna',
+        }
+        out.push(rec)
       }
     } catch {}
   }

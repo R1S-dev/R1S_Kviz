@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useMemo } from 'react'
 import { loadQuestionsJSONL } from '../utils/jsonl'
 import type { KvizQ } from '../types'
 import { shuffle } from '../utils/arrays'
@@ -6,6 +6,25 @@ import { ArrowLeft, Check, X as XIcon, Circle } from 'lucide-react'
 import type { Settings } from '../App'
 
 type QState = 'idle' | 'correct' | 'wrong' | 'skipped'
+
+const CATEGORY_LABELS: Record<string, string> = {
+  fizika: 'Физика',
+  hemija: 'Хемија',
+  psihologija: 'Психологија',
+  latinske: 'Латинске изреке',
+  opsta: 'Општа информисаност',
+  koznazna: 'Ко зна зна',
+}
+
+// Mapiranje kategorije na fajl (JSONL u /public)
+const CATEGORY_FILES: Record<string, string> = {
+  fizika: '/questions-fizika.jsonl',
+  hemija: '/questions-hemija.jsonl',
+  psihologija: '/questions-psihologija.jsonl',
+  latinske: '/questions-latinske.jsonl',
+  opsta: '/questions-opsta.jsonl',
+  koznazna: '/questions.jsonl', // postojeći
+}
 
 export default function Kviz({
   back,
@@ -22,7 +41,7 @@ export default function Kviz({
     Array.from({ length: settings.totalQuestions }, () => 'idle')
   )
 
-  // animacija za smooth prelaz pitanja
+  // anim faze
   const [phaseOut, setPhaseOut] = useState(false)
 
   const [startAt, setStartAt] = useState<number>(Date.now())
@@ -31,23 +50,26 @@ export default function Kviz({
   const lockNextRef = useRef(false)
 
   const PER_QUESTION_MS = settings.perQuestionMs
+  const categoryId = settings.categoryId ?? 'koznazna'
+  const categoryPath = CATEGORY_FILES[categoryId] ?? CATEGORY_FILES['koznazna']
 
   useEffect(() => {
     (async () => {
-      const sample = [
-        {"id":"1","pitanje":"КОЈИ ЈЕ ГЛАВНИ ГРАД ФРАНЦУСКЕ?","odgovori":["Париз","Марсеј","Лион","Ница"],"tacan":0},
-        {"id":"2","pitanje":"КОЈА РЕКА ПРОТИЧЕ КРОЗ БЕОГРАД?","odgovori":["Дунав","Сава","Морава","Тиса"],"tacan":1},
-        {"id":"3","pitanje":"КОЈИ ЕЛЕМЕНТ ИМА ХЕМИЈСКИ СИМБОЛ O?","odgovori":["Кисеоник","Злато","Сребро","Гвожђе"],"tacan":0}
+      // Fallback sample (ako fajl ne postoji)
+      const sample: KvizQ[] = [
+        {"id":"1","pitanje":"Главни град Канаде је:","odgovori":["Отава","Торонто","Ванкувер","Монтреал"],"tacan":0},
+        {"id":"2","pitanje":"Колико има секунди у једном дану?","odgovori":["86400","3600","43200","90000"],"tacan":0},
+        {"id":"3","pitanje":"Симбол за натријум је:","odgovori":["Na","N","Ni","K"],"tacan":0}
       ]
       try {
-        const all = await loadQuestionsJSONL('/questions.jsonl')
-        const pick = shuffle(all).slice(0, settings.totalQuestions)
-        setQs(pick.length ? pick : shuffle(sample).concat(sample).slice(0, settings.totalQuestions))
+        const all = await loadQuestionsJSONL(categoryPath)
+        const take = shuffle(all).slice(0, settings.totalQuestions)
+        setQs(take.length ? take : shuffle(sample).slice(0, settings.totalQuestions))
       } catch {
-        setQs(shuffle(sample).concat(sample).slice(0, settings.totalQuestions))
+        setQs(shuffle(sample).slice(0, settings.totalQuestions))
       }
     })()
-  }, [settings.totalQuestions])
+  }, [settings.totalQuestions, categoryPath])
 
   useEffect(() => {
     setStartAt(Date.now())
@@ -64,32 +86,26 @@ export default function Kviz({
 
   const q = qs[idx]
   const elapsed = Math.max(0, now - startAt)
-  const pctElapsed = Math.max(0, Math.min(1, elapsed / PER_QUESTION_MS)) // 0 → 1
+  const pctElapsed = Math.max(0, Math.min(1, elapsed / PER_QUESTION_MS))
   const barWidth = `${pctElapsed * 100}%`
   const timeUp = elapsed >= PER_QUESTION_MS
   const remainingMs = Math.max(0, PER_QUESTION_MS - elapsed)
-  const isCritical = remainingMs <= 3000 // poslednje 3 sekunde
 
   useEffect(() => {
     if (!q) return
     if (timeUp && picked == null) {
-      // lagani izlaz pa sledeće pitanje
       markAndNext('skipped')
     }
   }, [timeUp, q, picked])
 
   function vibrate(pattern: number | number[]) {
-    try {
-      if ('vibrate' in navigator) (navigator as any).vibrate(pattern)
-    } catch {}
+    try { if ('vibrate' in navigator) (navigator as any).vibrate(pattern) } catch {}
   }
 
   function markAndNext(state: QState) {
     setStates(prev => { const n=prev.slice(); n[idx]=state; return n })
-
-    // mali fade-out pre promene indeksa
     setPhaseOut(true)
-    const NEXT_DELAY = 180 // ms
+    const NEXT_DELAY = 180
     setTimeout(() => {
       if (idx >= settings.totalQuestions - 1) {
         setDone(true)
@@ -106,10 +122,7 @@ export default function Kviz({
     if (picked!=null || !q || lockNextRef.current) return
     setPicked(i)
     const ok = i===q.tacan
-
-    // haptic
     ok ? vibrate(25) : vibrate([30, 40, 30])
-
     lockNextRef.current = true
     setTimeout(()=>{
       lockNextRef.current = false
@@ -117,10 +130,34 @@ export default function Kviz({
     }, 850)
   }
 
+  const categoryTitle = useMemo(
+    () => CATEGORY_LABELS[categoryId] ?? 'Квиз',
+    [categoryId]
+  )
+
+  // === LOADING STATE — sada sa BACK dugmetom u headeru ===
   if (!q && !done) {
     return (
-      <div className="max-w-md mx-auto min-h-screen flex flex-col justify-center items-center">
-        <div className="card">Учитавање питања…</div>
+      <div className="max-w-md mx-auto min-h-screen flex flex-col gap-3 relative">
+        <div className="flex items-center justify-between">
+          <button className="btn-secondary px-3 py-2 rounded-full" onClick={back} aria-label="Назад">
+            <ArrowLeft size={22} />
+          </button>
+          <div className="w-8" aria-hidden />
+        </div>
+
+        <div className="card">
+          <div className="w-full h-[4px] rounded-full bg-surface-elev border border-surface-stroke overflow-hidden">
+            <div className="h-full bar bar-normal animate-pulse" style={{ width: '35%' }} />
+          </div>
+        </div>
+
+        <div className="card card-question flex-1 overflow-hidden flex items-center justify-center">
+          <div className="text-ink-subtle">Учитавање питања…</div>
+        </div>
+
+        {/* Spacer da se ne sakrije ispod potencijalnog sheet-a (u loadingu nema sheet-a, ali vizuelno balansira) */}
+        <div className="h-[24px]" aria-hidden />
       </div>
     )
   }
@@ -128,13 +165,10 @@ export default function Kviz({
   if (done) {
     const correctCount = states.filter(s => s === 'correct').length
     const perfect = correctCount === states.length
-
     return (
       <div className="max-w-md mx-auto space-y-4 min-h-screen flex flex-col relative">
-        {/* konfete ako je sve tačno */}
         {perfect && <Confetti />}
 
-        {/* Header: back (levo) + kružići (desno) */}
         <div className="flex items-center justify-between">
           <button className="btn-secondary px-3 py-2 rounded-full" onClick={back} aria-label="Назад">
             <ArrowLeft size={22} />
@@ -150,12 +184,10 @@ export default function Kviz({
         </div>
 
         <div className="card-hero anim-fade mt-1">
-          <div className="h2 mb-2">Резултат</div>
-          <div className="text-ink-subtle mb-4">
-            Тачних одговора: <b>{correctCount}</b> / {states.length}
-          </div>
+          <div className="h2 mb-1">Резултат — {categoryTitle}</div>
+          <div className="text-ink-subtle mb-4">Тачних одговора: <b>{correctCount}</b> / {states.length}</div>
           <div className="flex gap-2 justify-end">
-            <button className="btn" onClick={back}>Почетак</button>
+            <button className="btn" onClick={back}>Избор категорије</button>
           </div>
         </div>
       </div>
@@ -182,20 +214,23 @@ export default function Kviz({
         </div>
       </div>
 
+      {/* Category badge */}
+      <div className="text-ink-subtle text-xs -mb-2 px-1">Категорија: <span className="text-ink">{categoryTitle}</span></div>
+
       {/* Progress bar */}
       <div className="card anim-fade">
         <div className="w-full h-[4px] rounded-full bg-surface-elev border border-surface-stroke overflow-hidden">
           <div
             className={
               "h-full transition-[width] duration-100 ease-linear bar " +
-              (isCritical ? "bar-critical" : "bar-normal")
+              (remainingMs <= 3000 ? "bar-critical" : "bar-normal")
             }
             style={{ width: barWidth }}
           />
         </div>
       </div>
 
-      {/* Pitanje — sa “breathing room” do sheet-a */}
+      {/* Pitanje kartica */}
       <div
         key={idx}
         className={
@@ -210,10 +245,10 @@ export default function Kviz({
         </div>
       </div>
 
-      {/* Spacer da border ostane vidljiv iznad sheet-a */}
+      {/* Spacer iznad sheet-a */}
       <div className="h-[256px] shrink-0" aria-hidden />
 
-      {/* Bottom sheet sa odgovorima — glass blur + animacije */}
+      {/* Bottom sheet (glass) */}
       <div className={"bottom-sheet " + (phaseOut ? "anim-slide-down" : "anim-slide-up")}>
         <div className="sheet-container">
           <div className="card-sheet glass">
@@ -244,7 +279,6 @@ export default function Kviz({
   )
 }
 
-/** Jednostavne CSS-konfete: 36 “trakica” koje nežno padnu pri savršenom rezultatu */
 function Confetti() {
   const COUNT = 36
   return (
